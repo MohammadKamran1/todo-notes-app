@@ -28,7 +28,7 @@ app.use((err, req, res, next) => {
 });
 
 // Connect to DB and start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 1000;
 const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {

@@ -4,7 +4,7 @@ const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5000/api';
 
 const client = axios.create({
   baseURL: API_BASE,
-  timeout: 5000
+  timeout: 300000
 });
 
 // simple wrapper for consistent error shape
