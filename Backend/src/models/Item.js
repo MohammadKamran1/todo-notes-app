@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const itemSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  },
   type: {
     type: String,
     enum: ['todo', 'note'],
@@ -20,7 +25,7 @@ const itemSchema = new mongoose.Schema({
   },
   completed: {
     type: Boolean,
-    default: false // only meaningful for todos
+    default: false
   }
 }, { timestamps: true });
 

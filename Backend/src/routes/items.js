@@ -1,8 +1,13 @@
+// routes/items.js
 const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const Item = require('../models/Item');
+const auth = require('../middleware/auth');   // ← new
 
 const router = express.Router();
+
+// Apply auth to all /items routes
+router.use(auth);
 
 // Helper: central validation handler
 const runValidation = (req, res, next) => {
@@ -26,7 +31,13 @@ router.post('/',
   async (req, res, next) => {
     try {
       const { type, title, content, completed } = req.body;
-      const item = new Item({ type, title, content, completed });
+      const item = new Item({
+        type,
+        title,
+        content,
+        completed,
+        user: req.user.id              // <-- attach logged-in user
+      });
       await item.save();
       res.status(201).json({ success: true, data: item });
     } catch (err) {
@@ -35,14 +46,14 @@ router.post('/',
   }
 );
 
-// Read items (with optional filters)
+// Read items (with optional filters) — only this user's items
 router.get('/',
   query('type').optional().isIn(['todo', 'note']),
   query('completed').optional().isBoolean().toBoolean(),
   runValidation,
   async (req, res, next) => {
     try {
-      const filter = {};
+      const filter = { user: req.user.id }; // only user's items
       if (req.query.type) filter.type = req.query.type;
       if (req.query.completed !== undefined) filter.completed = req.query.completed;
       const items = await Item.find(filter).sort({ createdAt: -1 }).lean();
@@ -53,13 +64,13 @@ router.get('/',
   }
 );
 
-// Read single item
+// Read single item — only if it belongs to the user
 router.get('/:id',
   param('id').isMongoId(),
   runValidation,
   async (req, res, next) => {
     try {
-      const item = await Item.findById(req.params.id);
+      const item = await Item.findOne({ _id: req.params.id, user: req.user.id });
       if (!item) {
         const err = new Error('Item not found');
         err.statusCode = 404;
@@ -72,7 +83,7 @@ router.get('/:id',
   }
 );
 
-// Update item
+// Update item — only if owned by the user
 router.put('/:id',
   param('id').isMongoId(),
   body('title').optional().isString().trim().isLength({ min: 1, max: 200 }),
@@ -86,7 +97,12 @@ router.put('/:id',
         if (req.body[k] !== undefined) updates[k] = req.body[k];
       });
 
-      const item = await Item.findByIdAndUpdate(req.params.id, updates, { new: true });
+      const item = await Item.findOneAndUpdate(
+        { _id: req.params.id, user: req.user.id },
+        updates,
+        { new: true }
+      );
+
       if (!item) {
         const err = new Error('Item not found');
         err.statusCode = 404;
@@ -99,13 +115,13 @@ router.put('/:id',
   }
 );
 
-// Delete item
+// Delete item — only if owned by the user
 router.delete('/:id',
   param('id').isMongoId(),
   runValidation,
   async (req, res, next) => {
     try {
-      const item = await Item.findByIdAndDelete(req.params.id);
+      const item = await Item.findOneAndDelete({ _id: req.params.id, user: req.user.id });
       if (!item) {
         const err = new Error('Item not found');
         err.statusCode = 404;
