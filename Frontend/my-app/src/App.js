@@ -100,7 +100,7 @@ export default function App() {
   return (
     <div className="container">
       <div className="header">
-        <h2>Todo & Notes App</h2>
+        <h2>Todo & Ease</h2>
       </div>
 
       <div className="grid">
